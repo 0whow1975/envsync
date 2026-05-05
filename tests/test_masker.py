@@ -74,6 +74,11 @@ def test_mask_value_uses_custom_mask() -> None:
     assert masker.mask_value("SECRET_KEY", "abc") == "<REDACTED>"
 
 
+def test_mask_value_empty_string_is_masked(masker: SecretMasker) -> None:
+    """Ensure that empty string values for secret keys are still masked."""
+    assert masker.mask_value("API_TOKEN", "") == MASK_PLACEHOLDER
+
+
 # --- mask_dict ---
 
 
@@ -83,6 +88,14 @@ def test_mask_dict_masks_only_secrets(masker: SecretMasker) -> None:
     assert result["APP_ENV"] == "prod"
     assert result["DB_PASSWORD"] == MASK_PLACEHOLDER
     assert result["PORT"] == "8080"
+
+
+def test_mask_dict_does_not_mutate_original(masker: SecretMasker) -> None:
+    """Ensure mask_dict returns a new dict and does not modify the input."""
+    env = {"DB_PASSWORD": "hunter2", "APP_ENV": "prod"}
+    original = dict(env)
+    masker.mask_dict(env)
+    assert env == original
 
 
 # --- add_pattern ---
@@ -100,3 +113,8 @@ def test_mask_keys_returns_only_secret_keys() -> None:
     keys = ["APP_ENV", "DB_PASSWORD", "API_TOKEN", "PORT"]
     result = mask_keys(keys)
     assert set(result) == {"DB_PASSWORD", "API_TOKEN"}
+
+
+def test_mask_keys_empty_list_returns_empty() -> None:
+    """Ensure mask_keys handles an empty input list gracefully."""
+    assert mask_keys([]) == []
