@@ -41,9 +41,24 @@ class DiffResult:
             counts[entry.change_type.value] += 1
         return counts
 
+    def changed_keys(self) -> List[str]:
+        """Return a sorted list of keys that have any change (added, removed, or changed)."""
+        return sorted(
+            e.key for e in self.entries if e.change_type != ChangeType.UNCHANGED
+        )
+
 
 def diff_env_files(source: EnvFile, target: EnvFile) -> DiffResult:
-    """Compare source vs target EnvFile and return a DiffResult."""
+    """Compare source vs target EnvFile and return a DiffResult.
+
+    Args:
+        source: The baseline EnvFile (e.g. a committed .env.example).
+        target: The EnvFile to compare against the source (e.g. a local .env).
+
+    Returns:
+        A DiffResult containing one DiffEntry per unique key found across
+        both files, each annotated with its ChangeType and values.
+    """
     entries: List[DiffEntry] = []
 
     all_keys = dict.fromkeys(list(source.order) + list(target.order))
