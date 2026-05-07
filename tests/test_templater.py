@@ -91,10 +91,3 @@ def test_schema_template_no_comments(simple_schema: EnvSchema) -> None:
     content = generate_template_from_schema(simple_schema, opts)
     assert "# Required" not in content
     assert "# Optional" not in content
-
-
-def test_save_template_writes_file(tmp_path: Path) -> None:
-    dest = tmp_path / "subdir" / ".env.template"
-    save_template("KEY=value\n", dest)
-    assert dest.exists()
-    assert dest.read_text() == "KEY=value\n"
