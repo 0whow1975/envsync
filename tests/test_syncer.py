@@ -65,6 +65,18 @@ def test_sync_dry_run_does_not_write(diff_result, target_env):
     assert result.total_changes > 0
 
 
+def test_sync_no_options_makes_no_changes(diff_result, target_env):
+    """With all options disabled, no keys should be added, updated, or removed."""
+    original = target_env.read_text()
+    result = sync_env_files(
+        diff_result,
+        target_env,
+        SyncOptions(add_missing=False, update_changed=False, remove_extra=False),
+    )
+    assert target_env.read_text() == original
+    assert result.total_changes == 0
+
+
 def test_sync_result_total_changes():
     result = SyncResult()
     result.added = ["A", "B"]
