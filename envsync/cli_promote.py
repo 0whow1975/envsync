@@ -44,9 +44,21 @@ def add_promote_subparser(subparsers: argparse._SubParsersAction) -> None:  # no
     p.set_defaults(func=cmd_promote)
 
 
+def _parse_env_file_or_exit(path: str) -> dict:
+    """Parse an env file, printing a friendly error and exiting on failure."""
+    try:
+        return parse_env_file(path)
+    except FileNotFoundError:
+        print(f"error: file not found: {path}", file=sys.stderr)
+        sys.exit(1)
+    except OSError as exc:
+        print(f"error: could not read {path}: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_promote(args: argparse.Namespace) -> int:
-    source = parse_env_file(args.source)
-    target = parse_env_file(args.target)
+    source = _parse_env_file_or_exit(args.source)
+    target = _parse_env_file_or_exit(args.target)
 
     key_filter = None
     if args.only_keys:
@@ -73,5 +85,5 @@ def cmd_promote(args: argparse.Namespace) -> int:
         print(f"Skipped ({result.skipped_count}): {', '.join(result.skipped_keys)}",
               file=sys.stderr)
 
-    print(f"\nPromoted {result.promoted_count} key(s) from {args.source} → {args.target}.")
+    print(f"\nPromoted {result.promoted_count} key(s) from {args.source} \u2192 {args.target}.")
     return 0
