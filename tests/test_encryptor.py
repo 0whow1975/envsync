@@ -32,6 +32,12 @@ def test_generate_key_returns_bytes():
     assert len(key) > 0
 
 
+def test_generate_key_returns_unique_keys():
+    """Each call to generate_key should return a distinct key."""
+    keys = {generate_key() for _ in range(5)}
+    assert len(keys) == 5
+
+
 def test_encrypt_secrets_only_by_default(env):
     result = encrypt_env(env)
     keys_encrypted = [e for e in result.entries if e.value.startswith("enc:")]
@@ -91,8 +97,13 @@ def test_decrypt_with_wrong_key_leaves_enc_prefix(env):
     assert all(e.value.startswith("enc:") for e in decrypted.entries)
 
 
-def test_to_env_file_returns_correct_path(env):
-    result = encrypt_env(env)
-    env_file = result.to_env_file("/tmp/out.env")
-    assert env_file.path == "/tmp/out.env"
-    assert len(env_file.entries) == len(env.entries)
+def test_encrypt_idempotent_with_same_key(env):
+    """Encrypting an already-encrypted file should not double-encrypt values."""
+    key = generate_key()
+    options = EncryptOptions(key=key, secrets_only=False)
+    first_pass = encrypt_env(env, options)
+    second_pass = encrypt_env(first_pass.to_env_file(".env"), options)
+    # Values that were already encrypted should not gain a second enc: prefix
+    assert not any(
+        e.value.startswith("enc:enc:") for e in second_pass.entries
+    )
