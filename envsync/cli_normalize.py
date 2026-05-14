@@ -41,7 +41,17 @@ def add_normalize_subparser(subparsers: argparse._SubParsersAction) -> None:  # 
     p.set_defaults(func=cmd_normalize)
 
 
+def _build_output(result) -> str:
+    """Serialize normalized env entries to a .env-formatted string."""
+    lines = [
+        f"{e.key}={e.value}" if e.value is not None else f"{e.key}="
+        for e in result.entries
+    ]
+    return "\n".join(lines) + ("\n" if lines else "")
+
+
 def cmd_normalize(args: argparse.Namespace) -> int:
+    """Entry point for the ``normalize`` sub-command."""
     try:
         env = parse_env_file(args.file)
     except FileNotFoundError:
@@ -56,16 +66,15 @@ def cmd_normalize(args: argparse.Namespace) -> int:
     )
 
     result = normalize_env(env, opts)
-
-    lines = [
-        f"{e.key}={e.value}" if e.value is not None else f"{e.key}="
-        for e in result.entries
-    ]
-    output = "\n".join(lines) + ("\n" if lines else "")
+    output = _build_output(result)
 
     if args.inplace:
-        with open(args.file, "w", encoding="utf-8") as fh:
-            fh.write(output)
+        try:
+            with open(args.file, "w", encoding="utf-8") as fh:
+                fh.write(output)
+        except OSError as exc:
+            print(f"error: could not write to {args.file}: {exc}", file=sys.stderr)
+            return 1
         print(
             f"normalized {args.file}: "
             f"{result.total_changed} changed, {result.total_removed} removed."
