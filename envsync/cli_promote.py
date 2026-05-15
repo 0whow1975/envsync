@@ -56,6 +56,24 @@ def _parse_env_file_or_exit(path: str) -> dict:
         sys.exit(1)
 
 
+def _print_applied_changes(
+    result,
+    masker: SecretMasker | None,
+    prefix: str,
+) -> None:
+    """Print each applied change entry to stdout.
+
+    Args:
+        result: The promote result containing sync_result.applied entries.
+        masker: Optional SecretMasker used to redact sensitive values.
+        prefix: String prepended to each line (e.g. "[dry-run] ").
+    """
+    for entry in result.sync_result.applied:
+        raw_val = entry.source_value or ""
+        display = masker.mask_value(entry.key, raw_val) if masker else raw_val
+        print(f"{prefix}{entry.change_type.value.upper():10s}  {entry.key}={display}")
+
+
 def cmd_promote(args: argparse.Namespace) -> int:
     source = _parse_env_file_or_exit(args.source)
     target = _parse_env_file_or_exit(args.target)
@@ -76,10 +94,7 @@ def cmd_promote(args: argparse.Namespace) -> int:
     masker = SecretMasker(MaskConfig()) if not args.no_mask else None
 
     prefix = "[dry-run] " if args.dry_run else ""
-    for entry in result.sync_result.applied:
-        raw_val = entry.source_value or ""
-        display = masker.mask_value(entry.key, raw_val) if masker else raw_val
-        print(f"{prefix}{entry.change_type.value.upper():10s}  {entry.key}={display}")
+    _print_applied_changes(result, masker, prefix)
 
     if result.skipped_keys:
         print(f"Skipped ({result.skipped_count}): {', '.join(result.skipped_keys)}",
